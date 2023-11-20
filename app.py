@@ -41,11 +41,11 @@ def get_category_all():
 @app.route('/api/v1/category/items/', methods=['GET'])
 def get_items_all():
     with engine.connect() as conn:
-        query = text("SELECT i.item_id, i.item_name, i.amount, c.category_name, i.image FROM Item i JOIN Category c ON i.category_id = c.category_id;")
+        query = text("SELECT i.item_id, i.item_name, i.amount, c.category_name, i.image, i.unit FROM Item i JOIN Category c ON i.category_id = c.category_id;")
         items = conn.execute(query)
 
         item_data = [
-            {"item_id": item.item_id, "item_name": item.item_name, "amount": item.amount, "category": item.category_name, "image": item.image}
+            {"item_id": item.item_id, "item_name": item.item_name, "amount": item.amount, "unit": item.unit, "category": item.category_name, "image": item.image}
             for item in items
         ]
 
@@ -62,10 +62,10 @@ def get_category_details(category_id):
         if category is None:
             abort(404, description="Category not found")
 
-        items_query = text("SELECT i.item_id, i.item_name, i.amount, i.image FROM Item i WHERE i.category_id = :category_id")
+        items_query = text("SELECT i.item_id, i.item_name, i.amount, i.image, i.unit FROM Item i WHERE i.category_id = :category_id")
         items_result = conn.execute(items_query,{"category_id" : category_id})
         items_data = [
-            {"item_id": item.item_id, "item_name": item.item_name, "amount": item.amount, "image": item.image}
+            {"item_id": item.item_id, "item_name": item.item_name, "amount": item.amount,"unit": item.unit , "image": item.image}
             for item in items_result
         ]
 
@@ -84,7 +84,7 @@ def get_item_detail_by_name(category_id, item_name):
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT i.item_id, i.item_name, i.amount, c.category_name, i.image FROM Item i 
+                SELECT i.item_id, i.item_name, i.amount, i.unit, c.category_name, i.image FROM Item i 
                 JOIN Category c ON i.category_id = c.category_id 
                 WHERE i.category_id = :category_id AND LOWER(i.item_name) = LOWER(:item_name);
                         """)
@@ -99,7 +99,8 @@ def get_item_detail_by_name(category_id, item_name):
                 "item_name": item.item_name,
                 "amount": item.amount,
                 "category": item.category_name,
-                "image": item.image
+                "image": item.image,
+                "unit": item.unit
             }
         return jsonify(item_data)
     except Exception as e:
@@ -110,7 +111,7 @@ def get_item_detail_by_id(category_id, item_id):
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT i.item_id, i.item_name, i.amount, c.category_name, i.image FROM Item i 
+                SELECT i.item_id, i.item_name, i.amount, i.unit, c.category_name, i.image FROM Item i 
                 JOIN Category c ON i.category_id = c.category_id 
                 WHERE i.category_id = :category_id AND i.item_id = :item_id;
                         """)
@@ -125,7 +126,8 @@ def get_item_detail_by_id(category_id, item_id):
                 "item_name": item.item_name,
                 "amount": item.amount,
                 "category": item.category_name,
-                "image": item.image
+                "image": item.image,
+                "unit": item.unit
             }
         return jsonify(item_data)
     except Exception as e:
@@ -169,7 +171,7 @@ def get_all_transaction_history():
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT ic.change_id, time, ic.item_id, amount_before_change, amount_after_change, item_name,category_name
+                SELECT ic.change_id, time, ic.item_id, amount_before_change, amount_after_change, item_name,category_name, i.unit
                 FROM InventoryChanges ic JOIN Item i ON ic.item_id = i.item_id
                 JOIN Category c ON i.category_id = c.category_id
                 ORDER BY time DESC;
@@ -183,7 +185,8 @@ def get_all_transaction_history():
                     "item_name": row.item_name,
                     "category_name": row.category_name,
                     "amount_before_change": row.amount_before_change,
-                    "amount_after_change": row.amount_after_change
+                    "amount_after_change": row.amount_after_change,
+                    "unit": row.unit
                 }
                 for row in result
             ]
